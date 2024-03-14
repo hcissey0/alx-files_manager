@@ -1,4 +1,3 @@
-const { resolveSoa } = require('dns');
 const redis = require('redis');
 
 class RedisClient {
