@@ -1,8 +1,10 @@
 import dbClient from './utils/db';
 
 const imageThumbnail = require('image-thumbnail');
+// eslint-disable-next-line import/no-unresolved
 const fileQueue = require('fileQueue');
 
+// eslint-disable-next-line no-unused-vars
 function processQueue(job) {
   fileQueue.process(async (job) => {
     if (!job.data.fileId) throw new Error('Missing fileId');

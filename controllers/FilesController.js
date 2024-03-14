@@ -2,9 +2,9 @@ import fs from 'fs';
 import uuidv4 from 'uuid';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
-import processQueue from '../worker';
+// import processQueue from '../worker';
 
-const bull = require('bull');
+// const bull = require('bull');
 
 class FilesController {
   static async postUpload(req, res) {
@@ -60,14 +60,14 @@ class FilesController {
       parentId,
     });
 
-    if (type === 'image') {
-      const fileQueue = bull.Queue('fileQueue');
-      const job = fileQueue.add({
-        fileId: newFile.insertedId,
-        userId: newFile.ops[0].userId,
-      });
-      processQueue(job);
-    }
+    // if (type === 'image') {
+    //   const fileQueue = bull.Queue('fileQueue');
+    //   const job = fileQueue.add({
+    //     fileId: newFile.insertedId,
+    //     userId: newFile.ops[0].userId,
+    //   });
+    //   processQueue(job);
+    // }
 
     return res.status(201).send({
       id: newFile.insertedId,
