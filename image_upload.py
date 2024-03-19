@@ -3,6 +3,10 @@ import base64
 import requests
 import sys
 
+if len(sys.argv) < 2:
+    print('Usage: python image_upload.py <image_path> <session_token> <parentId>')
+    exit(2)
+
 file_path = sys.argv[1]
 file_name = file_path.split('/')[-1]
 
