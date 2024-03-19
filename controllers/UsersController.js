@@ -13,11 +13,10 @@ class UsersController {
     if (userExists) return res.status(400).send({ error: 'Already exist' });
 
     const hashedPassword = sha1(req.body.password);
-    console.log(hashedPassword);
+
     const result = await dbClient.db.collection('users').insertOne({
       email: req.body.email, password: hashedPassword,
     });
-    console.log(result);
 
     return res.status(201).send({ id: result.insertedId, email: req.body.email });
   }

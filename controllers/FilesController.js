@@ -1,5 +1,6 @@
 import fs from 'fs';
-import uuidv4 from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
+import { ObjectId } from 'mongodb';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 // import processQueue from '../worker';
@@ -25,7 +26,7 @@ class FilesController {
     if (!data && type !== 'folder') return res.status(400).send({ error: 'Missing data' });
 
     if (parentId !== 0) {
-      const file = await files.findOne({ parentId });
+      const file = await files.findOne({ _id: ObjectId(parentId) });
       if (!file) return res.status(400).send({ error: 'Parent not found' });
       if (file.type !== 'folder') return res.status(400).send({ error: 'Parent is not a folder' });
     }
@@ -58,16 +59,8 @@ class FilesController {
       type,
       isPublic,
       parentId,
+      localPath,
     });
-
-    // if (type === 'image') {
-    //   const fileQueue = bull.Queue('fileQueue');
-    //   const job = fileQueue.add({
-    //     fileId: newFile.insertedId,
-    //     userId: newFile.ops[0].userId,
-    //   });
-    //   processQueue(job);
-    // }
 
     return res.status(201).send({
       id: newFile.insertedId,
@@ -76,6 +69,7 @@ class FilesController {
       type: newFile.ops[0].type,
       isPublic: newFile.ops[0].isPublic,
       parentId: newFile.ops[0].parentId,
+      localPath: newFile.ops[0].localPath,
     });
   }
 }
