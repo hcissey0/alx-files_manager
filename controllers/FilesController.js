@@ -97,7 +97,14 @@ class FilesController {
 
     const file = await files.findOne({ _id: ObjectId(id), userId: user._id });
     if (!file) return res.status(404).send({ error: 'Not found' });
-    return res.send(file);
+    return res.send({
+      id: file._id,
+      userId: file.userId,
+      name: file.name,
+      type: file.type,
+      isPublic: file.isPublic,
+      parentId: file.parentId,
+    });
   }
 
   static async getIndex(req, res) {
@@ -156,12 +163,21 @@ class FilesController {
     if (!user) return res.status(401).send({ error: 'Unauthorized' });
 
     try {
-      const file = await files.updateOne(
+      await files.updateOne(
         { _id: ObjectId(id), userId: user._id },
         { $set: { isPublic: true } },
       );
+      const file = await files.findOne({ _id: ObjectId(id), userId: user._id });
+
       if (!file) return res.status(404).send({ error: 'Not found' });
-      return res.send(file);
+      return res.send({
+        id: file._id,
+        userId: file.userId,
+        name: file.name,
+        type: file.type,
+        isPublic: file.isPublic,
+        parentId: file.parentId,
+      });
     } catch (error) {
       return res.status(404).send({ error: 'Not found' });
     }
@@ -178,12 +194,21 @@ class FilesController {
     const user = await users.findOne({ _id: ObjectId(userId) });
     if (!user) return res.status(401).send({ error: 'Unauthorized' });
 
-    const file = await files.updateOne(
+    await files.updateOne(
       { _id: ObjectId(id), userId: user._id },
       { $set: { isPublic: false } },
     );
+    const file = await files.findOne({ _id: ObjectId(id), userId: user._id });
+
     if (!file) return res.status(404).send({ error: 'Not found' });
-    return res.send(file);
+    return res.send({
+      id: file._id,
+      userId: file.userId,
+      name: file.name,
+      type: file.type,
+      isPublic: file.isPublic,
+      parentId: file.parentId,
+    });
   }
 }
 
