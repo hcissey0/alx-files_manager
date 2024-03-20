@@ -23,7 +23,7 @@ class FilesController {
 
     const { name } = req.body;
     const { type } = req.body;
-    const parentId = req.body.parentId || '0';
+    let parentId = req.body.parentId || '0';
     const isPublic = req.body.isPublic || false;
     const { data } = req.body;
 
@@ -37,10 +37,11 @@ class FilesController {
       const file = await files.findOne({ _id: ObjectId(parentId) });
       if (!file) return res.status(400).send({ error: 'Parent not found' });
       if (file.type !== 'folder') return res.status(400).send({ error: 'Parent is not a folder' });
+      parentId = file._id;
     }
     if (type === 'folder') {
       const newFile = await files.insertOne({
-        userId,
+        userId: user._id,
         name,
         type,
         isPublic,
@@ -62,7 +63,7 @@ class FilesController {
     const decode = Buffer.from(data, 'base64').toString('utf-8');
     await fs.promises.writeFile(localPath, decode);
     const newFile = await files.insertOne({
-      userId,
+      userId: user._id,
       name,
       type,
       isPublic,
@@ -77,7 +78,6 @@ class FilesController {
       type: newFile.ops[0].type,
       isPublic: newFile.ops[0].isPublic,
       parentId: newFile.ops[0].parentId,
-      localPath: newFile.ops[0].localPath,
     });
   }
 
@@ -95,7 +95,7 @@ class FilesController {
     const user = await users.findOne({ _id: ObjectId(userId) });
     if (!user) return res.status(401).send({ error: 'Unauthorized' });
 
-    const file = await files.findOne({ _id: ObjectId(id) });
+    const file = await files.findOne({ _id: ObjectId(id), userId: user._id });
     if (!file) return res.status(404).send({ error: 'Not found' });
     return res.send(file);
   }
@@ -113,15 +113,12 @@ class FilesController {
 
     const { parentId = '0', page = 0 } = req.query;
 
-    // const allFiles = files.find({ parentId });
-    // if (!allFiles) return res.send([]);
-
     try {
       const pipeline = [
         {
           $match: {
-            userId,
-            parentId,
+            userId: user._id,
+            ...(parentId !== '0' && { parentId: ObjectId(parentId) }),
           },
         },
         {
@@ -131,20 +128,62 @@ class FilesController {
           $limit: 20,
         },
       ];
-      const allFiles = await files.aggregate(pipeline).toArray();
-
+      const allFiles = await files.aggregate(pipeline)
+        .project({
+          _id: 0,
+          id: '$_id',
+          userId: 1,
+          name: 1,
+          isPublic: 1,
+          parentId: 1,
+        }).toArray();
       return res.json(allFiles);
     } catch (error) {
-      return res.status(500).send({ error: 'Internal Server Error' });
+      return res.status(500).send({ error: error.message });
     }
   }
 
   static async putPublish(req, res) {
-    return [req, res];
+    const users = dbClient.db.collection('users');
+    const files = dbClient.db.collection('files');
+
+    const { id } = req.params;
+    const token = req.headers['x-token'];
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) return res.status(401).send({ error: 'Unauthorized' });
+
+    const user = await users.findOne({ _id: ObjectId(userId) });
+    if (!user) return res.status(401).send({ error: 'Unauthorized' });
+
+    try {
+      const file = await files.updateOne(
+        { _id: ObjectId(id), userId: user._id },
+        { $set: { isPublic: true } },
+      );
+      if (!file) return res.status(404).send({ error: 'Not found' });
+      return res.send(file);
+    } catch (error) {
+      return res.status(404).send({ error: 'Not found' });
+    }
   }
 
   static async putUnpublish(req, res) {
-    return [req, res];
+    const users = dbClient.db.collection('users');
+    const files = dbClient.db.collection('files');
+
+    const { id } = req.params;
+
+    const token = req.headers['x-token'];
+    const userId = await redisClient.get(`auth_${token}`);
+    const user = await users.findOne({ _id: ObjectId(userId) });
+    if (!user) return res.status(401).send({ error: 'Unauthorized' });
+
+    const file = await files.updateOne(
+      { _id: ObjectId(id), userId: user._id },
+      { $set: { isPublic: false } },
+    );
+    if (!file) return res.status(404).send({ error: 'Not found' });
+    return res.send(file);
   }
 }
 
